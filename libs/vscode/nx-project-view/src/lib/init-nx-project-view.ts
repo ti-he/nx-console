@@ -40,7 +40,7 @@ export async function showProjectConfiguration(selection: NxTreeItem) {
     return;
   }
   const viewItem = selection.item;
-  if (viewItem.contextValue === 'folder') {
+  if (viewItem.contextValue === 'folder' || viewItem.contextValue === 'group') {
     return;
   }
 

@@ -8,11 +8,15 @@ import {
   FolderViewItem,
   ProjectViewItem,
   ProjectViewStrategy,
-  TargetViewItem,
+  TargetViewItemGroup,
+  TargetViewTreeItem,
 } from './nx-project-base-view';
 import { TreeItemCollapsibleState } from 'vscode';
 
-export type TreeViewItem = FolderViewItem | ProjectViewItem | TargetViewItem;
+export type TreeViewItem =
+  | FolderViewItem
+  | ProjectViewItem
+  | TargetViewTreeItem;
 export type TreeViewStrategy = ProjectViewStrategy<TreeViewItem>;
 
 export type ProjectInfo = {
@@ -86,6 +90,10 @@ class TreeView extends BaseView {
       }
     }
 
+    if (element.contextValue === 'group') {
+      return (element as TargetViewItemGroup).targetViewItems;
+    }
+
     if (element.contextValue === 'target') {
       return this.createConfigurationsFromTarget(element);
     }
@@ -101,7 +109,6 @@ class TreeView extends BaseView {
      * Show a placeholder value instead
      */
     const label = folderName === '' ? '<root>' : folderName;
-
     return {
       id: `$folder:${path}`,
       contextValue: 'folder',

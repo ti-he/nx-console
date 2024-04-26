@@ -6,6 +6,7 @@ import {
   NxTarget,
   ProjectViewItem,
   TargetViewItem,
+  TargetViewTreeItem,
 } from './views/nx-project-base-view';
 
 export class NxTreeItem extends TreeItem {
@@ -39,13 +40,19 @@ export class NxTreeItem extends TreeItem {
     if (this.contextValue === 'target') {
       this.iconPath = new ThemeIcon('symbol-property');
     }
+    if (this.contextValue === 'group') {
+      this.iconPath = new ThemeIcon('group-by-ref-type');
+    }
   }
 
   public getProject(): NxProject | undefined {
     if (this.contextValue === 'project') {
       return (this.item as ProjectViewItem).nxProject as NxProject;
-    } else if (this.contextValue === 'target') {
-      return (this.item as TargetViewItem).nxProject as NxProject;
+    } else if (
+      this.contextValue === 'group' ||
+      this.contextValue === 'target'
+    ) {
+      return (this.item as TargetViewTreeItem).nxProject as NxProject;
     }
   }
 

@@ -7,6 +7,14 @@ import { getOutputChannel, getWorkspacePath } from '@nx-console/vscode/utils';
 import { join } from 'node:path';
 import { TreeItemCollapsibleState } from 'vscode';
 
+declare module 'nx/src/devkit-exports' {
+  interface TargetConfiguration {
+    // Nx targets can have arbitrary additional properties.
+    // This allows users to assign a group to a target.
+    group?: string;
+  }
+}
+
 export interface ProjectViewStrategy<T> {
   getChildren(element?: T): Promise<T[] | undefined>;
 }
@@ -31,7 +39,15 @@ export interface ProjectViewItem extends BaseViewItem<'project'> {
 export interface TargetViewItem extends BaseViewItem<'target'> {
   nxProject: NxProject;
   nxTarget: NxTarget;
+  group?: string;
 }
+
+export interface TargetViewItemGroup extends BaseViewItem<'group'> {
+  nxProject: NxProject;
+  targetViewItems: TargetViewItem[];
+}
+
+export type TargetViewTreeItem = TargetViewItem | TargetViewItemGroup;
 
 export interface NxProject {
   project: string;
@@ -87,27 +103,90 @@ export abstract class BaseView {
       return;
     }
 
-    return Object.entries(targets).map((target) =>
+    const targetViewItems = Object.entries(targets).map((target) =>
       this.createTargetTreeItem(nxProject, target)
     );
+    const treeItems = this.groupTargets(nxProject, targetViewItems);
+    // sort alphabetically
+    // groups come before ungrouped targets
+    treeItems.sort((a, b) => {
+      if (a.contextValue === 'group' && b.contextValue !== 'group') {
+        return -1;
+      }
+      if (a.contextValue !== 'group' && b.contextValue === 'group') {
+        return 1;
+      }
+      return a.label.localeCompare(b.label);
+    });
+    // also sort each group
+    treeItems.forEach((item) => {
+      if (item.contextValue === 'group') {
+        item.targetViewItems.sort((a, b) => a.label.localeCompare(b.label));
+      }
+    });
+
+    return treeItems;
+  }
+
+  async createTargetsFromGroup(parent: TargetViewItemGroup) {
+    return parent.targetViewItems;
+  }
+
+  private groupTargets(
+    nxProject: NxProject,
+    targets: TargetViewItem[]
+  ): TargetViewTreeItem[] {
+    const result: TargetViewTreeItem[] = [];
+    const groupNames = Array.from(
+      new Set(
+        targets
+          .map((target) => target.group?.toLowerCase())
+          .filter((group): group is string => Boolean(group))
+      )
+    );
+
+    for (const groupName of groupNames) {
+      const groupTargets = targets.filter(
+        (target) => target.group?.toLowerCase() === groupName
+      );
+
+      const group: TargetViewItemGroup = {
+        collapsible: TreeItemCollapsibleState.Collapsed,
+        contextValue: 'group',
+        id: `${nxProject.project}:group:${groupName}`,
+        label: groupName,
+        nxProject: nxProject,
+        targetViewItems: groupTargets,
+      };
+
+      result.push(group);
+    }
+
+    // Add any targets that don't have a group
+    const ungroupedTargets = targets.filter((target) => !target.group);
+    result.push(...ungroupedTargets);
+
+    return result;
   }
 
   createTargetTreeItem(
     nxProject: NxProject,
-    [targetName, { configurations }]: [
+    [targetName, configuration]: [
       targetName: string,
       targetDefinition: TargetConfiguration
     ]
   ): TargetViewItem {
-    const hasChildren =
-      configurations && Object.keys(configurations).length > 0;
+    const myConfiguration = configuration;
+    const cofigs = myConfiguration.configurations;
+    const hasConfigs = cofigs && Object.keys(cofigs).length > 0;
     return {
       id: `${nxProject.project}:${targetName}`,
       contextValue: 'target',
       nxProject,
       nxTarget: { name: targetName },
+      group: myConfiguration.group,
       label: targetName,
-      collapsible: hasChildren
+      collapsible: hasConfigs
         ? TreeItemCollapsibleState.Collapsed
         : TreeItemCollapsibleState.None,
     };

@@ -128,7 +128,7 @@ export async function initVscodeProjectGraph(context: ExtensionContext) {
     commands.registerCommand(
       'nx.graph.select.button',
       async (treeItem: NxTreeItem) => {
-        getTelemetry().featureUsed('nx.graph.focus.button');
+        getTelemetry().featureUsed('nx.graph.select.button');
         const nxVersion = await getNxVersion();
         if (!nxVersion) {
           showNoNxVersionMessage();
