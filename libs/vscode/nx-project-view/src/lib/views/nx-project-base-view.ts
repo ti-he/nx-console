@@ -190,11 +190,11 @@ export abstract class BaseView {
       group: group,
       /*
        * Remove the group name from the target label (if present) since it's already displayed in the group.
-       * This allows to name targets like "[format]write" and have them displayed as "write" in the tree.
+       * This allows to name targets like "{format}write" and have them displayed as "write" in the tree.
        * It avoids target name collions.
-       * E.g. you can have [lint]all and [format]all in the same project.
+       * E.g. you can have {lint}all and {format}all in the same project.
        */
-      label: targetName.replace(`[${group}]`, ''),
+      label: targetName.replace(`{${group}}`, ''),
       collapsible: hasConfigs
         ? TreeItemCollapsibleState.Collapsed
         : TreeItemCollapsibleState.None,
